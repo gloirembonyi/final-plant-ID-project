@@ -36,7 +36,7 @@ let db;
 function getDB() {
   if (!db) {
     const pool = new Pool({
-      connectionString: process.env.DB_URL
+      connectionString: process.env.NEXT_DRIZZLE_DATABASE_URL
 }
 
 export { getDB };
