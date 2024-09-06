@@ -19,6 +19,7 @@ const Navigation = () => {
           <li><Link href="/contact" className="hover:text-[dad7cd] transition font-thin">Contact</Link></li>
           <li><Link href="/help" className="hover:text-[dad7cd] transition font-thin">Help</Link></li>
           <li><Link href="/login" className="hover:text-[dad7cd] transition font-thin">login</Link></li>
+          <li><Link href="/plan-placing" className="hover:text-[dad7cd] transition font-thin">pro</Link></li>
         </ul>
       </div>
     </nav>

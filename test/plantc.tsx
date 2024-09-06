@@ -1,16 +1,16 @@
 
-        <div className="flex justify-end space-x-2 mb-4">
-          {['en', 'fr', 'rw'].map((lang) => (
-            <button
-              key={lang}
-              onClick={() => translateResult(lang as 'en' | 'fr' | 'rw')}
-              className={`px-3 py-1 rounded bg-gray-300 text-black hover:bg-green-500 transition ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={!result || loading}
-            >
-              {lang === 'en' ? 'English' : lang === 'fr' ? 'French' : 'Kinyarwanda'}
-            </button>
-          ))}
-        </div>
+        // <div className="flex justify-end space-x-2 mb-4">
+        //   {['en', 'fr', 'rw'].map((lang) => (
+        //     <button
+        //       key={lang}
+        //       onClick={() => translateResult(lang as 'en' | 'fr' | 'rw')}
+        //       className={`px-3 py-1 rounded bg-gray-300 text-black hover:bg-green-500 transition ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        //       disabled={!result || loading}
+        //     >
+        //       {lang === 'en' ? 'English' : lang === 'fr' ? 'French' : 'Kinyarwanda'}
+        //     </button>
+        //   ))}
+        // </div>
 
 // 'use client'
 
@@ -217,148 +217,629 @@
 
 // components/PlantIdentifier.tsx
 
-'use client'
+// 'use client'
 
-import { useState, useRef } from 'react'
-import Image from 'next/image'
-import { GoogleGenerativeAI } from '@google/generative-ai'
-import Navigation from './Navigation'
-import Footer from './Footer'
-import ImageUpload from './ImageUpload'
-import ResultDisplay from './ResultDisplay'
+// import { useState, useRef } from 'react'
+// import Image from 'next/image'
+// import { GoogleGenerativeAI } from '@google/generative-ai'
+// import Navigation from './Navigation'
+// import Footer from './Footer'
+// import ImageUpload from './ImageUpload'
+// import ResultDisplay from './ResultDisplay'
 
-// ... rest of your PlantIdentifier component code
+// // ... rest of your PlantIdentifier component code
 
-export default function PlantIdentifier() {
-  const [image, setImage] = useState<string | null>(null)
-  const [result, setResult] = useState<string | null>(null)
-  const [translatedResult, setTranslatedResult] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [darkMode, setDarkMode] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+// export default function PlantIdentifier() {
+//   const [image, setImage] = useState<string | null>(null)
+//   const [result, setResult] = useState<string | null>(null)
+//   const [translatedResult, setTranslatedResult] = useState<string | null>(null)
+//   const [loading, setLoading] = useState(false)
+//   const [darkMode, setDarkMode] = useState(false)
+//   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (e) => setImage(e.target?.result as string)
-      reader.readAsDataURL(file)
-    }
-  }
+//   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+//     const file = e.target.files?.[0]
+//     if (file) {
+//       const reader = new FileReader()
+//       reader.onload = (e) => setImage(e.target?.result as string)
+//       reader.readAsDataURL(file)
+//     }
+//   }
 
-  const handleCameraCapture = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click()
-    }
-  }
+//   const handleCameraCapture = () => {
+//     if (fileInputRef.current) {
+//       fileInputRef.current.click()
+//     }
+//   }
 
-  const identifyPlant = async () => {
-    if (!image) return
-    setLoading(true)
-    try {
-      const genAI = new GoogleGenerativeAI('YOUR_API_KEY')
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+//   const identifyPlant = async () => {
+//     if (!image) return
+//     setLoading(true)
+//     try {
+//       const genAI = new GoogleGenerativeAI('YOUR_API_KEY')
+//       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
       
-      const result = await model.generateContent({
-        contents: [{
-          role: "user",
-          parts: [
-            { text: 'Identify this plant and provide its name, distribution, and other important information. ' +
-              'Then, assess the health of the plant (Good or Bad) based on the image. ' +
-              'Format the response as follows:\n' +
-              'Plant Information:\n' +
-              '[Provide plant name, distribution, and other details here]\n\n' +
-              'Health Assessment:\n' +
-              'Status: [Good/Bad]\n' +
-              'If Status is Good:\n' +
-              'Appearance: -[Describe how the plant looks when healthy]\n' +
-              'Maintenance Tips: -[Provide 3-4 tips for maintaining good health]\n' +
-              'If Status is Bad:\n' +
-              'Diseases/Issues: -[List any visible diseases or issues]\n' +
-              'Mitigation: -[Provide 3-4 strategies to address the identified issues]\n' +
-              '\nPlease ensure the response is detailed but concise, focusing on the most relevant information for each section.'
-            },
-            {
-              inlineData: {
-                mimeType: "image/jpeg",
-                data: image.split(',')[1]
-              }
-            }
-          ]
-        }]
-      })
+//       const result = await model.generateContent({
+//         contents: [{
+//           role: "user",
+//           parts: [
+//             { text: 'Identify this plant and provide its name, distribution, and other important information. ' +
+//               'Then, assess the health of the plant (Good or Bad) based on the image. ' +
+//               'Format the response as follows:\n' +
+//               'Plant Information:\n' +
+//               '[Provide plant name, distribution, and other details here]\n\n' +
+//               'Health Assessment:\n' +
+//               'Status: [Good/Bad]\n' +
+//               'If Status is Good:\n' +
+//               'Appearance: -[Describe how the plant looks when healthy]\n' +
+//               'Maintenance Tips: -[Provide 3-4 tips for maintaining good health]\n' +
+//               'If Status is Bad:\n' +
+//               'Diseases/Issues: -[List any visible diseases or issues]\n' +
+//               'Mitigation: -[Provide 3-4 strategies to address the identified issues]\n' +
+//               '\nPlease ensure the response is detailed but concise, focusing on the most relevant information for each section.'
+//             },
+//             {
+//               inlineData: {
+//                 mimeType: "image/jpeg",
+//                 data: image.split(',')[1]
+//               }
+//             }
+//           ]
+//         }]
+//       })
   
-      const processedText = result.response.text().replace(/\*\*/g, '')
-      setResult(processedText)
-      setTranslatedResult(processedText)
-    } catch (error) {
-      const errorMessage = `Error identifying plant: ${error instanceof Error ? error.message : String(error)}`
-      setResult(errorMessage)
-      setTranslatedResult(errorMessage)
-    }
-    setLoading(false)
-  }
+//       const processedText = result.response.text().replace(/\*\*/g, '')
+//       setResult(processedText)
+//       setTranslatedResult(processedText)
+//     } catch (error) {
+//       const errorMessage = `Error identifying plant: ${error instanceof Error ? error.message : String(error)}`
+//       setResult(errorMessage)
+//       setTranslatedResult(errorMessage)
+//     }
+//     setLoading(false)
+//   }
 
-  const translateResult = async (lang: 'en' | 'fr' | 'rw') => {
-    if (!result) return;
+//   const translateResult = async (lang: 'en' | 'fr' | 'rw') => {
+//     if (!result) return;
   
-    setLoading(true);
-    try {
-      const response = await fetch('/api/translate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text: result, lang }),
-      });
+//     setLoading(true);
+//     try {
+//       const response = await fetch('/api/translate', {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//         },
+//         body: JSON.stringify({ text: result, lang }),
+//       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Translation failed');
-      }
+//       if (!response.ok) {
+//         const errorData = await response.json();
+//         throw new Error(errorData.error || 'Translation failed');
+//       }
       
-      const data = await response.json();
-      setTranslatedResult(data.translatedText);
-    } catch (error) {
-      console.error('Translation error:', error);
-      if (error instanceof Error && error.message.includes('Too Many Requests')) {
-        setTranslatedResult("Translation limit reached. Please try again later.");
-      } else {
-        setTranslatedResult(`Translation error: ${error instanceof Error ? error.message : 'An unknown error occurred'}`);
+//       const data = await response.json();
+//       setTranslatedResult(data.translatedText);
+//     } catch (error) {
+//       console.error('Translation error:', error);
+//       if (error instanceof Error && error.message.includes('Too Many Requests')) {
+//         setTranslatedResult("Translation limit reached. Please try again later.");
+//       } else {
+//         setTranslatedResult(`Translation error: ${error instanceof Error ? error.message : 'An unknown error occurred'}`);
+//       }
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const toggleDarkMode = () => {
+//     setDarkMode(!darkMode)
+//   }
+
+//   return (
+//     <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-[#1B4332] text-[#52B788]'}`}>
+//       <Navigation darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+//       <main className="container mx-auto p-4">
+//         <div className={`${darkMode ? 'bg-gray-800' : 'bg-[#081C15]'} rounded-lg border-2 border-[#52B788] shadow-lg p-6 mb-8`}>
+//           <h2 className="text-4xl text-[#52B788] font-bold text-center mb-6">Plant Identifier</h2>
+//           <ImageUpload
+//             handleImageUpload={handleImageUpload}
+//             handleCameraCapture={handleCameraCapture}
+//             fileInputRef={fileInputRef}
+//             image={image}
+//             identifyPlant={identifyPlant}
+//             loading={loading}
+//           />
+//           <ResultDisplay
+//             translatedResult={translatedResult}
+//             translateResult={translateResult}
+//             result={result}
+//             loading={loading}
+//             darkMode={darkMode}
+//           />
+//         </div>
+//       </main>
+//       <Footer darkMode={darkMode} />
+//     </div>
+//   )
+// }
+
+
+
+
+
+
+
+
+// import React, { useState, useEffect, useRef } from 'react';
+// import Image from 'next/image';
+// import { motion, AnimatePresence } from 'framer-motion';
+// import { ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from 'lucide-react';
+
+// interface ImageType {
+//   url: string;
+//   name: string;
+// }
+
+// interface CoolImageDisplayProps {
+//   images: ImageType[];
+// }
+
+// const CoolImageDisplay: React.FC<CoolImageDisplayProps> = ({ images }) => {
+//   const [selectedImage, setSelectedImage] = useState<ImageType | null>(null);
+//   const [isZoomed, setIsZoomed] = useState(false);
+//   const [currentIndex, setCurrentIndex] = useState(0);
+//   const scrollRef = useRef<HTMLDivElement>(null);
+
+//   useEffect(() => {
+//     const handleKeyDown = (e: KeyboardEvent) => {
+//       if (e.key === 'Escape' && selectedImage) {
+//         setSelectedImage(null);
+//       }
+//     };
+//     window.addEventListener('keydown', handleKeyDown);
+//     return () => window.removeEventListener('keydown', handleKeyDown);
+//   }, [selectedImage]);
+
+//   useEffect(() => {
+//     const scrollInterval = setInterval(() => {
+//       if (scrollRef.current) {
+//         const scrollWidth = scrollRef.current.scrollWidth;
+//         const clientWidth = scrollRef.current.clientWidth;
+//         const maxScroll = scrollWidth - clientWidth;
+        
+//         if (scrollRef.current.scrollLeft >= maxScroll) {
+//           scrollRef.current.scrollLeft = 0;
+//         } else {
+//           scrollRef.current.scrollLeft += 1;
+//         }
+//       }
+//     }, 50);
+
+//     return () => clearInterval(scrollInterval);
+//   }, []);
+
+//   const handleImageClick = (img: ImageType) => {
+//     setSelectedImage(img);
+//     setIsZoomed(false);
+//   };
+
+//   const handleZoom = () => {
+//     setIsZoomed(!isZoomed);
+//   };
+
+//   const handlePrev = () => {
+//     setCurrentIndex((prevIndex) => (prevIndex === 0 ? images.length - 1 : prevIndex - 1));
+//   };
+
+//   const handleNext = () => {
+//     setCurrentIndex((prevIndex) => (prevIndex === images.length - 1 ? 0 : prevIndex + 1));
+//   };
+
+//   return (
+//     <div className="mb-8 overflow-hidden bg-purple-900 rounded-lg p-6">
+//       <h2 className="text-3xl font-bold text-white mb-4">Plant Gallery</h2>
+//       <div className="relative">
+//         <div
+//           ref={scrollRef}
+//           className="flex space-x-4 py-4 overflow-x-hidden"
+//         >
+//           {images.concat(images).map((img: ImageType, index: number) => (
+//             <motion.div
+//               key={index}
+//               className="relative w-48 h-48 flex-shrink-0 rounded-lg overflow-hidden shadow-lg cursor-pointer"
+//               whileHover={{ scale: 1.05, boxShadow: '0 0 15px rgba(255, 0, 255, 0.5)' }}
+//               onClick={() => handleImageClick(img)}
+//             >
+//               <Image
+//                 src={img.url}
+//                 alt={img.name}
+//                 layout="fill"
+//                 objectFit="cover"
+//                 className="transition-all duration-500 hover:saturate-150"
+//               />
+//             </motion.div>
+//           ))}
+//         </div>
+//         <button
+//           className="absolute top-1/2 left-2 transform -translate-y-1/2 bg-purple-700 text-white p-2 rounded-full shadow-lg hover:bg-purple-600 transition-colors duration-300"
+//           onClick={handlePrev}
+//         >
+//           <ChevronLeft size={24} />
+//         </button>
+//         <button
+//           className="absolute top-1/2 right-2 transform -translate-y-1/2 bg-purple-700 text-white p-2 rounded-full shadow-lg hover:bg-purple-600 transition-colors duration-300"
+//           onClick={handleNext}
+//         >
+//           <ChevronRight size={24} />
+//         </button>
+//       </div>
+
+//       <AnimatePresence>
+//         {selectedImage && (
+//           <motion.div
+//             initial={{ opacity: 0 }}
+//             animate={{ opacity: 1 }}
+//             exit={{ opacity: 0 }}
+//             className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50"
+//             onClick={() => setSelectedImage(null)}
+//           >
+//             <motion.div
+//               className="relative max-w-4xl max-h-[90vh] bg-[#1a0f2e] p-4 rounded-lg shadow-2xl"
+//               onClick={(e) => e.stopPropagation()}
+//               initial={{ scale: 0.9, opacity: 0 }}
+//               animate={{ scale: 1, opacity: 1 }}
+//               exit={{ scale: 0.9, opacity: 0 }}
+//               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+//             >
+//               <div className={`relative ${isZoomed ? 'w-[120vw] h-[120vh]' : 'w-full h-full'} overflow-auto`}>
+//                 <Image
+//                   src={selectedImage.url}
+//                   alt={selectedImage.name}
+//                   layout="responsive"
+//                   width={1200}
+//                   height={800}
+//                   objectFit="contain"
+//                   className="transition-all duration-300"
+//                 />
+//               </div>
+//               <motion.button
+//                 className="absolute top-2 right-2 bg-[#52B788] text-white p-2 rounded-full shadow-lg hover:bg-[#3a9d6e] transition-colors duration-300"
+//                 onClick={handleZoom}
+//                 whileHover={{ scale: 1.1 }}
+//                 whileTap={{ scale: 0.9 }}
+//               >
+//                 {isZoomed ? <ZoomOut size={24} /> : <ZoomIn size={24} />}
+//               </motion.button>
+//               <motion.h3
+//                 className="text-white text-xl font-semibold mt-4 text-center"
+//                 initial={{ y: 20, opacity: 0 }}
+//                 animate={{ y: 0, opacity: 1 }}
+//                 transition={{ delay: 0.2 }}
+//               >
+//                 {selectedImage.name}
+//               </motion.h3>
+//             </motion.div>
+//           </motion.div>
+//         )}
+//       </AnimatePresence>
+//     </div>
+//   );
+// };
+
+// export default CoolImageDisplay;
+
+
+
+
+// import React, { useState, useEffect } from 'react';
+// import Image from 'next/image';
+// import { motion, AnimatePresence } from 'framer-motion';
+// import { ZoomIn, ZoomOut } from 'lucide-react';
+
+// interface ImageType {
+//   url: string;
+//   name: string;
+// }
+
+// interface CoolImageDisplayProps {
+//   images: ImageType[];
+// }
+
+// const CoolImageDisplay: React.FC<CoolImageDisplayProps> = ({ images }) => {
+//   const [selectedImage, setSelectedImage] = useState<ImageType | null>(null);
+//   const [isZoomed, setIsZoomed] = useState(false);
+
+//   useEffect(() => {
+//     const handleKeyDown = (e: KeyboardEvent) => {
+//       if (e.key === 'Escape' && selectedImage) {
+//         setSelectedImage(null);
+//       }
+//     };
+//     window.addEventListener('keydown', handleKeyDown);
+//     return () => window.removeEventListener('keydown', handleKeyDown);
+//   }, [selectedImage]);
+
+//   const handleImageClick = (img: ImageType) => {
+//     setSelectedImage(img);
+//     setIsZoomed(false);
+//   };
+
+//   const handleZoom = () => {
+//     setIsZoomed(!isZoomed);
+//   };
+
+//   return (
+//     <div className="relative mb-8 overflow-hidden">
+//       <motion.div 
+//         className="flex space-x-4 py-4"
+//         animate={{ x: [0, -1000, 0] }}
+//         transition={{ 
+//           x: {
+//             repeat: Infinity,
+//             repeatType: "loop",
+//             duration: 20,
+//             ease: "linear",
+//           },
+//         }}
+//       >
+//         {images.concat(images).map((img: ImageType, index: number) => (
+//           <motion.div
+//             key={index}
+//             className="relative w-64 h-64 flex-shrink-0 rounded-lg overflow-hidden shadow-lg cursor-pointer"
+//             whileHover={{ scale: 1.05, boxShadow: '0 0 15px rgba(255, 0, 255, 0.5)' }}
+//             onClick={() => handleImageClick(img)}
+//           >
+//             <Image
+//               src={img.url}
+//               alt={img.name}
+//               layout="fill"
+//               objectFit="cover"
+//               className="transition-all duration-500 hover:saturate-150"
+//             />
+//             <motion.div 
+//               className="absolute inset-0 bg-gradient-to-t from-[#130a2a] via-transparent to-transparent"
+//               initial={{ opacity: 0 }}
+//               whileHover={{ opacity: 1 }}
+//               transition={{ duration: 0.3 }}
+//             >
+//               <p className="absolute bottom-2 left-2 text-white text-sm font-light">
+//                 {img.name}
+//               </p>
+//             </motion.div>
+//           </motion.div>
+//         ))}
+//       </motion.div>
+
+//       <AnimatePresence>
+//         {selectedImage && (
+//           <motion.div
+//             initial={{ opacity: 0 }}
+//             animate={{ opacity: 1 }}
+//             exit={{ opacity: 0 }}
+//             className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50"
+//             onClick={() => setSelectedImage(null)}
+//           >
+//             <motion.div
+//               className="relative max-w-4xl max-h-[90vh] bg-[#1a0f2e] p-4 rounded-lg shadow-2xl"
+//               onClick={(e) => e.stopPropagation()}
+//               initial={{ scale: 0.9, opacity: 0 }}
+//               animate={{ scale: 1, opacity: 1 }}
+//               exit={{ scale: 0.9, opacity: 0 }}
+//               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+//             >
+//               <div className={`relative ${isZoomed ? 'w-[120vw] h-[120vh]' : 'w-full h-full'} overflow-auto`}>
+//                 <Image
+//                   src={selectedImage.url}
+//                   alt={selectedImage.name}
+//                   layout="responsive"
+//                   width={1200}
+//                   height={800}
+//                   objectFit="contain"
+//                   className="transition-all duration-300"
+//                 />
+//               </div>
+//               <motion.button
+//                 className="absolute top-2 right-2 bg-[#52B788] text-white p-2 rounded-full shadow-lg hover:bg-[#3a9d6e] transition-colors duration-300"
+//                 onClick={handleZoom}
+//                 whileHover={{ scale: 1.1 }}
+//                 whileTap={{ scale: 0.9 }}
+//               >
+//                 {isZoomed ? <ZoomOut size={24} /> : <ZoomIn size={24} />}
+//               </motion.button>
+//               <motion.h3
+//                 className="text-white text-xl font-semibold mt-4 text-center"
+//                 initial={{ y: 20, opacity: 0 }}
+//                 animate={{ y: 0, opacity: 1 }}
+//                 transition={{ delay: 0.2 }}
+//               >
+//                 {selectedImage.name}
+//               </motion.h3>
+//             </motion.div>
+//           </motion.div>
+//         )}
+//       </AnimatePresence>
+//     </div>
+//   );
+// };
+
+// export default CoolImageDisplay;
+
+
+
+
+
+import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ZoomIn, ZoomOut, X, ChevronLeft, ChevronRight } from 'lucide-react';
+
+interface ImageType {
+  url: string;
+  name: string;
+}
+
+interface CoolImageDisplayProps {
+  images: ImageType[];
+}
+
+const CoolImageDisplay: React.FC<CoolImageDisplayProps> = ({ images }) => {
+  const [selectedImage, setSelectedImage] = useState<ImageType | null>(null);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedImage) {
+        setSelectedImage(null);
+      } else if (e.key === 'ArrowLeft') {
+        navigateImages(-1);
+      } else if (e.key === 'ArrowRight') {
+        navigateImages(1);
       }
-    } finally {
-      setLoading(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedImage, currentIndex]);
+
+  const handleImageClick = (img: ImageType, index: number) => {
+    setSelectedImage(img);
+    setCurrentIndex(index);
+    setIsZoomed(false);
+  };
+
+  const handleZoom = () => {
+    setIsZoomed(!isZoomed);
+  };
+
+  const navigateImages = (direction: number) => {
+    const newIndex = (currentIndex + direction + images.length) % images.length;
+    setCurrentIndex(newIndex);
+    setSelectedImage(images[newIndex]);
+  };
+
+  const scrollCarousel = (direction: number) => {
+    if (carouselRef.current) {
+      carouselRef.current.scrollBy({ left: direction * 200, behavior: 'smooth' });
     }
   };
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode)
-  }
-
   return (
-    <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-[#1B4332] text-[#52B788]'}`}>
-      <Navigation darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <main className="container mx-auto p-4">
-        <div className={`${darkMode ? 'bg-gray-800' : 'bg-[#081C15]'} rounded-lg border-2 border-[#52B788] shadow-lg p-6 mb-8`}>
-          <h2 className="text-4xl text-[#52B788] font-bold text-center mb-6">Plant Identifier</h2>
-          <ImageUpload
-            handleImageUpload={handleImageUpload}
-            handleCameraCapture={handleCameraCapture}
-            fileInputRef={fileInputRef}
-            image={image}
-            identifyPlant={identifyPlant}
-            loading={loading}
-          />
-          <ResultDisplay
-            translatedResult={translatedResult}
-            translateResult={translateResult}
-            result={result}
-            loading={loading}
-            darkMode={darkMode}
-          />
-        </div>
-      </main>
-      <Footer darkMode={darkMode} />
+    <div className="relative mb-8 overflow-hidden bg-gradient-to-r from-purple-900 to-indigo-900 p-6 rounded-xl shadow-2xl">
+      <h2 className="text-3xl font-bold text-white mb-6 text-center">Plant Gallery</h2>
+      <div className="relative">
+        <motion.div 
+          ref={carouselRef}
+          className="flex space-x-4 py-4 overflow-x-auto hide-scrollbar"
+          whileTap={{ cursor: "grabbing" }}
+        >
+          {images.map((img: ImageType, index: number) => (
+            <motion.div
+              key={index}
+              className="relative w-32 h-32 flex-shrink-0 rounded-lg overflow-hidden shadow-lg cursor-pointer"
+              whileHover={{ scale: 1.1 }}
+              onClick={() => handleImageClick(img, index)}
+            >
+              <Image
+                src={img.url}
+                alt={img.name}
+                layout="fill"
+                objectFit="cover"
+                className="transition-all duration-500 hover:saturate-150"
+              />
+            </motion.div>
+          ))}
+        </motion.div>
+        <button
+          className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-purple-600 text-white p-2 rounded-full shadow-lg hover:bg-purple-700 transition-colors duration-300"
+          onClick={() => scrollCarousel(-1)}
+        >
+          <ChevronLeft size={24} />
+        </button>
+        <button
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-purple-600 text-white p-2 rounded-full shadow-lg hover:bg-purple-700 transition-colors duration-300"
+          onClick={() => scrollCarousel(1)}
+        >
+          <ChevronRight size={24} />
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {selectedImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50"
+            onClick={() => setSelectedImage(null)}
+          >
+            <motion.div
+              className="relative max-w-4xl max-h-[90vh] bg-gradient-to-r from-purple-900 to-indigo-900 p-6 rounded-xl shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            >
+              <div className={`relative ${isZoomed ? 'w-[120vw] h-[120vh]' : 'w-full h-full'} overflow-auto`}>
+                <Image
+                  src={selectedImage.url}
+                  alt={selectedImage.name}
+                  layout="responsive"
+                  width={1200}
+                  height={800}
+                  objectFit="contain"
+                  className="transition-all duration-300"
+                />
+              </div>
+              <motion.button
+                className="absolute top-2 right-2 bg-purple-600 text-white p-2 rounded-full shadow-lg hover:bg-purple-700 transition-colors duration-300"
+                onClick={handleZoom}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                {isZoomed ? <ZoomOut size={24} /> : <ZoomIn size={24} />}
+              </motion.button>
+              <motion.button
+                className="absolute top-2 left-2 bg-purple-600 text-white p-2 rounded-full shadow-lg hover:bg-purple-700 transition-colors duration-300"
+                onClick={() => setSelectedImage(null)}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <X size={24} />
+              </motion.button>
+              <motion.h3
+                className="text-white text-2xl font-semibold mt-4 text-center"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                {selectedImage.name}
+              </motion.h3>
+              <div className="absolute left-4 right-4 top-1/2 transform -translate-y-1/2 flex justify-between">
+                <motion.button
+                  className="bg-purple-600 text-white p-2 rounded-full shadow-lg hover:bg-purple-700 transition-colors duration-300"
+                  onClick={() => navigateImages(-1)}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <ChevronLeft size={24} />
+                </motion.button>
+                <motion.button
+                  className="bg-purple-600 text-white p-2 rounded-full shadow-lg hover:bg-purple-700 transition-colors duration-300"
+                  onClick={() => navigateImages(1)}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <ChevronRight size={24} />
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
-  )
-}
+  );
+};
+
+export default CoolImageDisplay;
