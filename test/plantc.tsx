@@ -843,3 +843,6 @@ const CoolImageDisplay: React.FC<CoolImageDisplayProps> = ({ images }) => {
 };
 
 export default CoolImageDisplay;
+
+
+// return result.response.text();

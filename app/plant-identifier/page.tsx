@@ -3,7 +3,7 @@
 "use client";
 
 //import PlantC from '../../components/PlantC';
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import {
@@ -78,6 +78,24 @@ const PlantIdentifierStyles = () => (
     }
   `}</style>
 );
+
+type Sender = 'user' | 'ai';
+
+interface Message {
+  sender: Sender;
+  text: string;
+}
+
+interface ChatContextType {
+  plantInfo: string;
+  previousMessages: Message[];
+}
+
+interface IdentificationResult {
+  plantInfo?: string;
+}
+
+
 export default function PlantIdentifier() {
   const [image, setImage] = useState<string | null>(null);
   const [result, setResult] = useState<{
@@ -105,9 +123,7 @@ export default function PlantIdentifier() {
   const [history, setHistory] = useState<
     Array<{ image: string; result: string; timestamp: number }>
   >([]);
-  const [chatMessages, setChatMessages] = useState<
-    Array<{ sender: string; text: string }>
-  >([]);
+  const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isChatExpanded, setIsChatExpanded] = useState(false);
   const [isAnalysisHidden, setIsAnalysisHidden] = useState(false);
@@ -115,88 +131,96 @@ export default function PlantIdentifier() {
     Array<{ url: string; name: string }>
   >([]);
 
-  const handleChatSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!chatInput.trim() || !image) return;
+  // Type definitions
 
-    const userMessage = { sender: "user", text: chatInput };
-    setChatMessages((prev) => [...prev, userMessage]);
-    setChatInput("");
+const handleChatSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  if (!chatInput.trim() || !image) return;
+  
+  const userMessage: Message = { sender: "user", text: chatInput };
+  setChatMessages((prev) => [...prev, userMessage]);
+  setChatInput("");
+  setLoading(true);
+  
+  try {
+    const chatContext: ChatContextType = {
+      plantInfo: result?.plantInfo || "",
+      previousMessages: chatMessages,
+    };
+    
+    const aiResponse = await processAIResponse(chatInput, image, chatContext);
+    const processedResponse = aiResponse.replace(/(\*\*|\#\#)/g, "");
+    const aiMessage: Message = { sender: "ai", text: processedResponse };
+    setChatMessages((prev) => [...prev, aiMessage]);
+  } catch (error) {
+    console.error("Error processing AI response:", error);
+    const errorMessage: Message = {
+      sender: "ai",
+      text: "Oops! 😅 I encountered an error. Let's try that again, shall we?",
+    };
+    setChatMessages((prev) => [...prev, errorMessage]);
+  } finally {
+    setLoading(false);
+  }
+};
 
-    setLoading(true);
-    try {
-      const aiResponse = await processAIResponse(
-        chatInput,
-        image,
-        result?.plantInfo || ""
-      );
-      const processedResponse = aiResponse.replace(/(\*\*|\#\#)/g, "");
-      const aiMessage = { sender: "ai", text: processedResponse };
-      setChatMessages((prev) => [...prev, aiMessage]);
-    } catch (error) {
-      console.error("Error processing AI response:", error);
-      const errorMessage = {
-        sender: "ai",
-        text: "Oops! 😅 I encountered an error. Let's try that again, shall we?",
-      };
-      setChatMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const processAIResponse = async (
-    input: string,
-    imageData: string,
-    plantInfo: string
-  ): Promise<string> => {
-    const genAI = new GoogleGenerativeAI(
-      "AIzaSyDgtX4r0SbnGD1bluGrkDBN45OKG8UFSW4"
-    );
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              text: `Based on the image I've uploaded and the following plant information: ${plantInfo}, please answer this question: ${input} 
+const processAIResponse = async (
+  input: string,
+  imageData: string,
+  context: ChatContextType
+): Promise<string> => {
+  const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY || "AIzaSyCr9LRa1zi5rwwTlibFmRu2r0rbug8S-Ow");
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+  const contextString = JSON.stringify(context);
+  
+  const result = await model.generateContent({
+    contents: [
+      {
+        role: "user",
+        parts: [
+          {
+            text: `Based on the image I've uploaded and the following context: ${contextString}, please answer this question: ${input}
+            Consider the previous messages in the conversation to provide a coherent and relevant response.
             Feel free to use emojis and a friendly tone in your response! 😊`,
+          },
+          {
+            inlineData: {
+              mimeType: "image/jpeg",
+              data: imageData.split(",")[1],
             },
-            {
-              inlineData: {
-                mimeType: "image/jpeg",
-                data: imageData.split(",")[1],
-              },
-            },
-          ],
-        },
-      ],
-    });
+          },
+        ],
+      },
+    ],
+  });
+  
+  return result.response.text();
+};
 
-    return result.response.text();
-  };
+const toggleChatExpansion = useCallback(() => {
+  setIsChatExpanded((prev) => !prev);
+  setIsAnalysisHidden((prev) => !prev);
+}, []);
 
-  const toggleChatExpansion = () => {
-    setIsChatExpanded(!isChatExpanded);
-    setIsAnalysisHidden(!isAnalysisHidden);
-  };
+useEffect(() => {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("identificationHistory", JSON.stringify(history));
+    localStorage.setItem("chatMessages", JSON.stringify(chatMessages));
+  }
+}, [history, chatMessages]);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("identificationHistory", JSON.stringify(history));
+useEffect(() => {
+  if (typeof window !== "undefined") {
+    const savedHistory = localStorage.getItem("identificationHistory");
+    const savedChatMessages = localStorage.getItem("chatMessages");
+    if (savedHistory) {
+      setHistory(JSON.parse(savedHistory));
     }
-  }, [history]);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedHistory = localStorage.getItem("identificationHistory");
-      if (savedHistory) {
-        setHistory(JSON.parse(savedHistory));
-      }
+    if (savedChatMessages) {
+      setChatMessages(JSON.parse(savedChatMessages));
     }
-  }, []);
+  }
+}, []);
 
   useEffect(() => {
     const savedDiseasesIssues = localStorage.getItem("diseasesIssues");
@@ -730,7 +754,7 @@ export default function PlantIdentifier() {
                             className={`inline-block p-2 rounded-lg ${
                               msg.sender === "user"
                                 ? "bg-[#15888c] text-white"
-                                : "bg-[#64f6f4] text-[#0D47A1]"
+                                : "bg-[#5498d0-] text-[#000000]"
                             } animate-fadeInUp relative group`}
                           >
                             {msg.text}

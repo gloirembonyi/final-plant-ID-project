@@ -52,10 +52,10 @@ export default function Checkout() {
   return (
     <div className="min-h-screen bg-gray-100">
       <Head>
-        <title>Choose Your Plan - Your App Name</title>
+        <title>Choose Your Plan - Plant Identifier</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className="container mx-auto px-4 py-8">
+      <main className="container  mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-center mb-8">Choose Your Plan</h1>
         <PlanSelector plans={plans} selectedPlan={selectedPlan} onSelectPlan={setSelectedPlan} />
         {selectedPlan && (
