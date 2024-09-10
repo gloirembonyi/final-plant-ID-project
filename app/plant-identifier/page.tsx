@@ -12,11 +12,14 @@ import {
   FaCopy,
   FaExpand,
   FaCompress,
+  FaMicrophone,
+  FaStop,
 } from "react-icons/fa";
 import { FaArrowRight, FaCamera, FaUpload } from "react-icons/fa";
 require("dotenv").config();
 import PlantInfoComponent from "./PlantInfoComponent";
 import CoolImageDisplay from "./CoolImageDisplay";
+import { AnimatePresence, motion } from "framer-motion";
 
 const PlantIdentifierStyles = () => (
   <style jsx global>{`
@@ -79,6 +82,7 @@ const PlantIdentifierStyles = () => (
   `}</style>
 );
 
+// Types
 type Sender = 'user' | 'ai';
 
 interface Message {
@@ -94,6 +98,170 @@ interface ChatContextType {
 interface IdentificationResult {
   plantInfo?: string;
 }
+
+// Styles
+const styles = `
+@import url(https://fonts.googleapis.com/css?family=Anonymous+Pro);
+
+.chat-container {
+  position: relative;
+  height: 80vh;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+.message-container {
+  padding-bottom: 60px;
+}
+
+.typewriter-container {
+  position: sticky;
+  bottom: 0;
+  background-color: rgba(10, 22, 37, 0.8);
+  padding: 10px;
+  backdrop-filter: blur(5px);
+}
+
+.message {
+  max-width: 80%;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.message:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+.user-message {
+    background-color: rgba(33, 150, 243, 0.1);
+    color: #E3F2FD;
+    margin-left: auto;
+    border-bottom-right-radius: 0;
+  }
+
+ .ai-message {
+    background-color: #0a3033;
+    color: #E8F5E9;
+    margin-right: auto;
+    border-bottom-left-radius: 0;
+  }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #2196F3;
+  border-radius: 20px;
+  border: 3px solid #1A237E;
+}
+
+.input-container {
+  position: sticky;
+  bottom: 0;
+  background-color: #0A1929;
+  padding: 10px;
+  border-top: 1px solid #1fbac0;
+}
+
+
+.typing-indicator::after {
+  content: '▋';
+  animation: blink 1s infinite;
+}
+
+@keyframes ellipsis {
+    0% { content: '.'; }
+    33% { content: '..'; }
+    66% { content: '...'; }
+  }
+
+.voice-recording-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  background-color: rgba(255, 0, 0, 0.1);
+  border-radius: 20px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  order-radius: 50%;
+  color: white;
+  background-color: #4CAF50;
+  border: none;
+}
+
+.pulse {
+  width: 10px;
+  height: 10px;
+  background-color: red;
+  border-radius: 50%;
+  margin-right: 10px;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
+  }
+  
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(255, 0, 0, 0);
+  }
+  
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
+  }
+}
+`;
+
+// Define props type for TypewriterEffect
+interface TypewriterEffectProps {
+  text: string;
+  onComplete: () => void;
+}
+
+const TypewriterEffect: React.FC<TypewriterEffectProps> = ({ text, onComplete }) => {
+  const [displayText, setDisplayText] = useState<string>("");
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+
+  useEffect(() => {
+    if (currentIndex < text.length) {
+      const timeout = setTimeout(() => {
+        setDisplayText((prev) => prev + text[currentIndex]);
+        setCurrentIndex((prev) => prev + 1);
+      }, Math.random() * 30 + 10);
+      return () => clearTimeout(timeout);
+    } else {
+      onComplete();
+    }
+  }, [currentIndex, text, onComplete]);
+
+  return (
+    <span>
+      {displayText}
+      {currentIndex < text.length && <span className="typing-indicator" />}
+    </span>
+  );
+};
+
 
 
 export default function PlantIdentifier() {
@@ -111,7 +279,7 @@ export default function PlantIdentifier() {
   const [showTranslateOptions, setShowTranslateOptions] = useState(false);
   const [showAllTopIssues, setShowAllTopIssues] = useState(false);
   const [showAllDetectedIssues, setShowAllDetectedIssues] = useState(false);
-  const [responseMessage, setResponseMessage] = useState<string>('');
+  const [responseMessage, setResponseMessage] = useState<string>("");
   const translateMenuRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
   const [diseasesIssues, setDiseasesIssues] = useState<{
@@ -130,97 +298,168 @@ export default function PlantIdentifier() {
   const [similarImages, setSimilarImages] = useState<
     Array<{ url: string; name: string }>
   >([]);
+  const [animatingMessage, setAnimatingMessage] = useState<string | null>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [isRecording, setIsRecording] = useState<boolean>(false);  // If it's a boolean value
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
 
   // Type definitions
 
-const handleChatSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  if (!chatInput.trim() || !image) return;
-  
-  const userMessage: Message = { sender: "user", text: chatInput };
-  setChatMessages((prev) => [...prev, userMessage]);
-  setChatInput("");
-  setLoading(true);
-  
-  try {
-    const chatContext: ChatContextType = {
-      plantInfo: result?.plantInfo || "",
-      previousMessages: chatMessages,
-    };
-    
-    const aiResponse = await processAIResponse(chatInput, image, chatContext);
-    const processedResponse = aiResponse.replace(/(\*\*|\#\#)/g, "");
-    const aiMessage: Message = { sender: "ai", text: processedResponse };
-    setChatMessages((prev) => [...prev, aiMessage]);
-  } catch (error) {
-    console.error("Error processing AI response:", error);
-    const errorMessage: Message = {
-      sender: "ai",
-      text: "Oops! 😅 I encountered an error. Let's try that again, shall we?",
-    };
-    setChatMessages((prev) => [...prev, errorMessage]);
-  } finally {
-    setLoading(false);
-  }
-};
+  const handleChatSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!chatInput.trim() || !image) return;
 
-const processAIResponse = async (
-  input: string,
-  imageData: string,
-  context: ChatContextType
-): Promise<string> => {
-  const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY || "AIzaSyCr9LRa1zi5rwwTlibFmRu2r0rbug8S-Ow");
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-  const contextString = JSON.stringify(context);
-  
-  const result = await model.generateContent({
-    contents: [
-      {
-        role: "user",
-        parts: [
-          {
-            text: `Based on the image I've uploaded and the following context: ${contextString}, please answer this question: ${input}
-            Consider the previous messages in the conversation to provide a coherent and relevant response.
-            Feel free to use emojis and a friendly tone in your response! 😊`,
-          },
-          {
-            inlineData: {
-              mimeType: "image/jpeg",
-              data: imageData.split(",")[1],
+    const userMessage: Message = { sender: "user", text: chatInput };
+    setChatMessages((prev) => [...prev, userMessage]);
+    setChatInput("");
+    setLoading(true);
+
+    try {
+      const chatContext: ChatContextType = {
+        plantInfo: result?.plantInfo || "",
+        previousMessages: chatMessages,
+      };
+
+      const aiResponse = await processAIResponse(chatInput, image, chatContext);
+      const processedResponse = aiResponse.replace(/(\*\*|\#\#)/g, "");
+      setAnimatingMessage(processedResponse);
+    } catch (error) {
+      console.error("Error processing AI response:", error);
+      const errorMessage: Message = {
+        sender: "ai",
+        text: "Oops! 😅 I encountered an error. Let's try that again, shall we?",
+      };
+      setChatMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+ 
+
+  const processAIResponse = async (
+    input: string,
+    imageData: string,
+    context: ChatContextType
+  ): Promise<string> => {
+    const genAI = new GoogleGenerativeAI(
+      process.env.GOOGLE_AI_API_KEY || "AIzaSyDgtX4r0SbnGD1bluGrkDBN45OKG8UFSW4"
+    );
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+    const contextString = JSON.stringify(context);
+
+    const result = await model.generateContent({
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              text: `Using the image I've uploaded and the context provided: ${contextString}, please focus on giving a clear and accurate answer to this question: ${input}. 
+              Consider our previous messages to ensure your response is coherent and fits naturally within the conversation. 
+              Keep the tone friendly and engaging—feel free to use emojis, but prioritize delivering the most relevant and helpful answer! 😊`,
             },
-          },
-        ],
-      },
-    ],
-  });
-  
-  return result.response.text();
-};
+            {
+              inlineData: {
+                mimeType: "image/jpeg",
+                data: imageData.split(",")[1],
+              },
+            },
+          ],
+        },
+      ],
+    });
 
-const toggleChatExpansion = useCallback(() => {
-  setIsChatExpanded((prev) => !prev);
-  setIsAnalysisHidden((prev) => !prev);
-}, []);
+    return result.response.text();
+  };
 
-useEffect(() => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem("identificationHistory", JSON.stringify(history));
-    localStorage.setItem("chatMessages", JSON.stringify(chatMessages));
-  }
-}, [history, chatMessages]);
+  const toggleChatExpansion = useCallback(() => {
+    setIsChatExpanded((prev) => !prev);
+    setIsAnalysisHidden((prev) => !prev);
+    setAnimate(true);
+    setTimeout(() => setAnimate(false), 500);
+  }, []);
 
-useEffect(() => {
-  if (typeof window !== "undefined") {
-    const savedHistory = localStorage.getItem("identificationHistory");
-    const savedChatMessages = localStorage.getItem("chatMessages");
-    if (savedHistory) {
-      setHistory(JSON.parse(savedHistory));
+  const toggleVoiceRecording = useCallback(async () => {
+    if (!isRecording) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorderRef.current = new MediaRecorder(stream);
+        audioChunksRef.current = [];
+
+        mediaRecorderRef.current.ondataavailable = (event) => {
+          audioChunksRef.current.push(event.data);
+        };
+
+        mediaRecorderRef.current.onstop = () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          
+          // Here you would typically send this audio file to a speech-to-text service
+          // For now, we'll just add a placeholder message
+          const userMessage: Message = { sender: "user", text: "🎤 Audio message" };
+          setChatMessages((prev) => [...prev, userMessage]);
+          
+          // Clean up
+          stream.getTracks().forEach(track => track.stop());
+        };
+
+        mediaRecorderRef.current.start();
+        setIsRecording(true);
+      } catch (err) {
+        console.error("Error accessing microphone:", err);
+      }
+    } else {
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
     }
-    if (savedChatMessages) {
-      setChatMessages(JSON.parse(savedChatMessages));
+  }, [isRecording]);
+
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("identificationHistory", JSON.stringify(history));
+      localStorage.setItem("chatMessages", JSON.stringify(chatMessages));
     }
-  }
-}, []);
+  }, [history, chatMessages]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedHistory = localStorage.getItem("identificationHistory");
+      const savedChatMessages = localStorage.getItem("chatMessages");
+      if (savedHistory) {
+        setHistory(JSON.parse(savedHistory));
+      }
+      if (savedChatMessages) {
+        setChatMessages(JSON.parse(savedChatMessages));
+      }
+    }
+  }, []);
+
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [chatMessages, animatingMessage]);
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
+    }
+  }, [chatMessages, animatingMessage]);
+
+  const handleTypewriterComplete = useCallback(() => {
+    if (animatingMessage) {
+      setChatMessages((prev) => [
+        ...prev,
+        { sender: "ai", text: animatingMessage },
+      ]);
+      setAnimatingMessage(null);
+    }
+  }, [animatingMessage]);
 
   useEffect(() => {
     const savedDiseasesIssues = localStorage.getItem("diseasesIssues");
@@ -310,8 +549,6 @@ useEffect(() => {
       console.error("getUserMedia is not supported");
     }
   };
-
-  
 
   // Function to identify the plant
   const identifyPlant = async () => {
@@ -489,79 +726,113 @@ useEffect(() => {
     setLoading(false);
   };
 
-  const addPlant = async (name: string, scientificName: string, commonNames: string[], description: string): Promise<number> => {
+  const addPlant = async (
+    name: string,
+    scientificName: string,
+    commonNames: string[],
+    description: string
+  ): Promise<number> => {
     try {
-      console.log('Sending request to add plant:', { name, scientificName, commonNames, description });
-      const response = await fetch('/api/plants', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          action: 'addPlant', 
-          name, 
-          scientificName, 
-          commonNames, 
-          description 
+      console.log("Sending request to add plant:", {
+        name,
+        scientificName,
+        commonNames,
+        description,
+      });
+      const response = await fetch("/api/plants", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "addPlant",
+          name,
+          scientificName,
+          commonNames,
+          description,
         }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Server responded with error:', errorData);
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message}`);
+        console.error("Server responded with error:", errorData);
+        throw new Error(
+          `HTTP error! status: ${response.status}, message: ${errorData.message}`
+        );
       }
-      
+
       const data = await response.json();
-      console.log('Plant added successfully:', data);
+      console.log("Plant added successfully:", data);
       setResponseMessage(data.message); // Use the state updater function here
       return data.plantId;
     } catch (error) {
-      console.error('Error adding plant:', error);
-      setResponseMessage(`Error adding plant: ${error instanceof Error ? error.message : String(error)}`);
+      console.error("Error adding plant:", error);
+      setResponseMessage(
+        `Error adding plant: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
       throw error;
     }
   };
-  
+
   const addDisease = async (name: string): Promise<number> => {
     try {
-      const response = await fetch('/api/plants', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'addDisease', name }),
+      console.log("Sending request to add disease:", { name });
+      const response = await fetch("/api/plants", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "addDisease", name }),
       });
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message}`);
+        console.error("Server responded with error:", errorData);
+        throw new Error(
+          `HTTP error! status: ${response.status}, message: ${errorData.message}`
+        );
       }
       const data = await response.json();
+      console.log("Disease added successfully:", data);
       setResponseMessage(data.message);
       return data.diseaseId;
     } catch (error) {
-      console.error('Error adding disease:', error);
-      setResponseMessage(`Error adding disease: ${error instanceof Error ? error.message : String(error)}`);
+      console.error("Error adding disease:", error);
+      setResponseMessage(
+        `Error adding disease: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
       throw error;
     }
   };
-  
-  const associateDiseaseWithPlant = async (plantId: number, diseaseId: number) => {
+
+  const associateDiseaseWithPlant = async (
+    plantId: number,
+    diseaseId: number
+  ) => {
     try {
-      const response = await fetch('/api/plants', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          action: 'associateDiseaseWithPlant', 
-          plantId, 
-          diseaseId 
+      const response = await fetch("/api/plants", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "associateDiseaseWithPlant",
+          plantId,
+          diseaseId,
         }),
       });
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message}`);
+        throw new Error(
+          `HTTP error! status: ${response.status}, message: ${errorData.message}`
+        );
       }
       const data = await response.json();
       setResponseMessage(data.message);
     } catch (error) {
-      console.error('Error associating disease with plant:', error);
-      setResponseMessage(`Error associating disease with plant: ${error instanceof Error ? error.message : String(error)}`);
+      console.error("Error associating disease with plant:", error);
+      setResponseMessage(
+        `Error associating disease with plant: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
       throw error;
     }
   };
@@ -713,7 +984,7 @@ useEffect(() => {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#050414] via-[#1a0f2e] to-[#2a1b3d] text-white font-['Roboto']">
+    <div className="min-h-screen flex flex-col -mt-24 pt-24 bg-gradient-to-br from-[#050414] via-[#1a0f2e] to-[#2a1b3d] text-white font-['Roboto']">
       {/* ... (existing styles and other elements) */}
       <PlantIdentifierStyles />
 
@@ -724,78 +995,113 @@ useEffect(() => {
               <CoolImageDisplay images={similarImages} />
             )}
             <div className="bg-[#130a2a]/80 rounded-2xl shadow-lg p-1 backdrop-blur-sm">
-              {isChatExpanded && (
-                <div
-                  className={`transition-all sticky top-20 z-10 duration-500 ease-in-out mt-8 ${
-                    animate ? "opacity-100 scale-100" : "opacity-0 scale-95"
+            <style>{styles}</style>
+            <AnimatePresence>
+  {isChatExpanded && (
+    <motion.div
+      key="chat-box"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.5, ease: "easeInOut" }}
+      className="transition-all sticky top-20 z-10 duration-500 ease-in-out mt-8"
+    >
+      <div className="bg-gradient-to-br from-[#101329] to-[#222c3c] rounded-lg top-20 shrink-0 z-10 shadow-lg p-6 backdrop-blur-sm mb-8 border border-[#3F51B5] hover:shadow-xl transform transition-all duration-500">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-2xl font-light text-[#66b5f6] flex items-center">
+            <FaComments className="mr-2 text-[#66b5f6]" /> AI Chat
+          </h3>
+          <button
+            onClick={toggleChatExpansion}
+            className="bg-gradient-to-br from-[#0a0c1b] to-[#24334c] text-[#66b5f6] px-3 py-1 rounded hover:bg-[#80bdef] transition font-light text-sm flex items-center"
+          >
+            <FaCompress className="mr-1" /> Minimize
+          </button>
+        </div>
+
+        <div ref={chatContainerRef} className="chat-container custom-scrollbar">
+          <div className="message-container">
+            <AnimatePresence>
+              {chatMessages.map((msg, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className={`message ${
+                    msg.sender === "user" ? "user-message" : "ai-message"
                   }`}
                 >
-                  <div className="bg-gradient-to-br from-[#2c7278] to-[#222c3c] p-6 rounded-2xl shadow-lg backdrop-blur-sm transform transition-all duration-500">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-2xl font-light text-[#1fbac0] flex items-center">
-                        <FaComments className="mr-2" /> AI Chat
-                      </h3>
-                      <button
-                        onClick={toggleChatExpansion}
-                        className="bg-[#1fbac0] text-white px-3 py-1 rounded hover:bg-[#25e2bf] transition font-light text-sm flex items-center"
-                      >
-                        <FaCompress className="mr-1" /> Minimize
-                      </button>
-                    </div>
-                    <div className="h-[calc(100vh-300px)] overflow-y-auto mb-4 bg-[#05221c]/50 rounded-lg p-4">
-                      {chatMessages.map((msg, index) => (
-                        <div
-                          key={index}
-                          className={`mb-2 ${
-                            msg.sender === "user" ? "text-right" : "text-left"
-                          }`}
-                        >
-                          <span
-                            className={`inline-block p-2 rounded-lg ${
-                              msg.sender === "user"
-                                ? "bg-[#15888c] text-white"
-                                : "bg-[#5498d0-] text-[#000000]"
-                            } animate-fadeInUp relative group`}
-                          >
-                            {msg.text}
-                            {msg.sender === "ai" && (
-                              <button
-                                onClick={() =>
-                                  navigator.clipboard.writeText(msg.text)
-                                }
-                                className="absolute top-0 right-0 mt-1 mr-1 bg-[#0e4145] text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                                title="Copy to clipboard"
-                              >
-                                <FaCopy size={12} />
-                              </button>
-                            )}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    <form
-                      onSubmit={handleChatSubmit}
-                      className="flex sticky bottom-10"
+                  {msg.text}
+                  {msg.sender === "ai" && (
+                    <button
+                      onClick={() => navigator.clipboard.writeText(msg.text)}
+                      className="absolute top-0 right-0 mt-1 mr-1 bg-[#1f9ba4] text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Copy to clipboard"
                     >
-                      <input
-                        type="text"
-                        value={chatInput}
-                        onChange={(e) => setChatInput(e.target.value)}
-                        placeholder="Ask about the image..."
-                        className="flex-grow bg-[#0a3033] text-white rounded-l-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-[#1fbac0]"
-                      />
-                      <button
-                        type="submit"
-                        className="bg-[#1fbac0] text-white px-4 py-2 rounded-r-full hover:bg-[#29ced3] transition"
-                      >
-                        <FaPaperPlane />
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              )}
+                      <FaCopy size={12} />
+                    </button>
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+
+          {animatingMessage && (
+            <div className="typewriter-container">
+              <TypewriterEffect
+                text={animatingMessage}
+                onComplete={handleTypewriterComplete}
+              />
+            </div>
+          )}
+
+          {isRecording && (
+            <div className="voice-recording-indicator">
+              <div className="pulse"></div>
+              Recording...
+            </div>
+          )}
+        </div>
+        <div className="input-container">
+        <form
+          onSubmit={handleChatSubmit}
+          className="flex sticky bottom-10 m-2"
+        >
+          <input
+            type="text"
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            placeholder="Ask about the image..."
+            className="flex-grow bg-gradient-to-br from-[#0a0c1b] to-[#24334c] text-[#c8c8c8] rounded-l-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-[#1fbac0]"
+          />
+          <button
+            type="button"
+            onClick={toggleVoiceRecording}
+            className={`bg-gradient-to-br from-[#0a0c1b] to-[#24334c] text-white px-4 py-2 ${
+              isRecording ? "bg-red-500" : ""
+            } transition mr-2`}
+          >
+            {isRecording ? <FaStop /> : <FaMicrophone />}
+          </button>
+          <button
+            type="submit"
+            className="bg-gradient-to-br from-[#0a0c1b] to-[#24334c] text-white px-4 py-2 rounded-r-full hover:bg-[#1d5e63] transition"
+          >
+            <FaPaperPlane />
+          </button>
+        </form>
+        </div>
+      </div>
+    </motion.div>
+  )}
+</AnimatePresence>
+
+
               {/* Header Section */}
               <div className="flex justify-between items-center mb-8  border-[#52B788] pb-4">
+                <style>{styles}</style>
                 <h2 className="text-5xl text-[#52B788] font-thin">
                   Plant Identifier
                 </h2>
@@ -920,6 +1226,7 @@ useEffect(() => {
               <PlantInfoComponent
                 showIdentificationResults={showIdentificationResults}
                 translatedResult={translatedResult}
+                responseMessage={responseMessage}
               />
             </div>
 
@@ -1059,31 +1366,28 @@ useEffect(() => {
           {!isChatExpanded && (
             <div className="bg-gradient-to-br from-[#101329] to-[#222c3c] rounded-lg top-20 shrink-0 z-10 shadow-lg p-6 backdrop-blur-sm mb-8 border border-[#3F51B5] hover:shadow-xl transition-all duration-300">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-3xl font-semibold text-[#1fbac0] flex items-center">
-                  <FaComments className="mr-3 text-[#1fbac0]" /> AI Chat
+                <h3 className="text-2xl font-light text-[#66b5f6] flex items-center">
+                  <FaComments className="mr-3 text-[#66b5f6]" /> AI Chat
                 </h3>
                 <button
                   onClick={toggleChatExpansion}
-                  className="bg-[#1fbac0] text-white px-4 py-2 rounded-full hover:bg-[#209390] transition font-medium text-sm flex items-center shadow-md hover:shadow-lg transform hover:scale-105"
+                  className="bg-gradient-to-br from-[#0a0c1b] to-[#24334c] text-[#66b5f6] px-3 py-1 rounded hover:bg-[#25e2bf] transition font-light text-sm flex items-center"
                 >
-                  <FaExpand className="mr-2" /> Expand
+                  <FaExpand className="mr-2" />{" "}
+                  {isChatExpanded ? "Collapse" : "Expand"}
                 </button>
               </div>
-
-              <div className="h-80 overflow-y-auto mb-6 bg-[#0a1625] rounded-lg p-4 scrollbar-thin scrollbar-thumb-[#2196F3] scrollbar-track-[#1A237E] custom-scrollbar">
-                {chatMessages.map((msg, index) => (
-                  <div
-                    key={index}
-                    className={`mb-4 ${
-                      msg.sender === "user" ? "text-right" : "text-left"
-                    }`}
-                  >
-                    <span
-                      className={`inline-block p-3 rounded-lg ${
-                        msg.sender === "user"
-                          ? "bg-[#2196F3] text-white"
-                          : "bg-[#64B5F6] text-[#0A1929]"
-                      } shadow-md animate-fadeInUp relative group max-w-[80%]`}
+              <div
+                ref={chatContainerRef}
+                className="chat-container custom-scrollbar"
+              >
+                <div className="message-container">
+                  {chatMessages.map((msg, index) => (
+                    <div
+                      key={index}
+                      className={`message ${
+                        msg.sender === "user" ? "user-message" : "ai-message"
+                      }`}
                     >
                       {msg.text}
                       {msg.sender === "ai" && (
@@ -1091,32 +1395,41 @@ useEffect(() => {
                           onClick={() =>
                             navigator.clipboard.writeText(msg.text)
                           }
-                          className="absolute top-0 right-0 mt-1 mr-1 bg-[#1A237E] text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#3F51B5]"
+                          className="absolute top-0 z-40 right-0 mt-1 mr-1 bg-[#161e79] text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#020e53]"
                           title="Copy to clipboard"
                         >
                           <FaCopy size={14} />
                         </button>
                       )}
-                    </span>
+                    </div>
+                  ))}
+                </div>
+                {animatingMessage && (
+                  <div className="typewriter-container">
+                    <TypewriterEffect
+                      text={animatingMessage}
+                      onComplete={handleTypewriterComplete}
+                    />
                   </div>
-                ))}
+                )}
               </div>
-
-              <form onSubmit={handleChatSubmit} className="flex">
-                <input
-                  type="text"
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Ask about the plant..."
-                  className="flex-grow bg-[#0A1929] text-white rounded-l-full py-3 px-6 focus:outline-none focus:ring-2 focus:ring-[#2196F3] placeholder-[#4FC3F7]"
-                />
-                <button
-                  type="submit"
-                  className="bg-[#1fbac0] text-white px-6 py-3 rounded-r-full hover:bg-[#29cdd3] transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#64B5F6]"
-                >
-                  <FaPaperPlane className="text-lg" />
-                </button>
-              </form>
+              <div className="input-container">
+                <form onSubmit={handleChatSubmit} className="flex">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Ask about the plant..."
+                    className="flex-grow bg-[#0A1929] text-white rounded-l-full py-3 px-6 focus:outline-none focus:ring-2 focus:ring-[#2196F3] placeholder-[#4FC3F7]"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-[#1fbac0] text-white px-6 py-3 rounded-r-full hover:bg-[#29cdd3] transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#64B5F6]"
+                  >
+                    <FaPaperPlane className="text-lg" />
+                  </button>
+                </form>
+              </div>
             </div>
           )}
 

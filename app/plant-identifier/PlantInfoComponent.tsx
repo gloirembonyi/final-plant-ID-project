@@ -8,15 +8,27 @@ interface PlantInfoComponentProps {
     plantInfo: string;
     healthAssessment: string;
   } | null;
+  responseMessage: string;
 }
 
-const PlantInfoComponent: React.FC<PlantInfoComponentProps> = ({ showIdentificationResults, translatedResult }) => {
+const PlantInfoComponent: React.FC<PlantInfoComponentProps> = ({ 
+  showIdentificationResults, 
+  translatedResult, 
+  responseMessage 
+}) => {
   const [activeSection, setActiveSection] = useState<'plantInfo' | 'healthAssessment'>('plantInfo');
   const [isHovered, setIsHovered] = useState(false);
 
   const toggleSection = () => {
     setActiveSection(activeSection === 'plantInfo' ? 'healthAssessment' : 'plantInfo');
   };
+
+  useEffect(() => {
+    if (responseMessage) {
+      console.log('Response message:', responseMessage);
+      // You can add more logic here to handle the response message if needed
+    }
+  }, [responseMessage]);
 
   if (!showIdentificationResults || !translatedResult) return null;
 
@@ -26,7 +38,7 @@ const PlantInfoComponent: React.FC<PlantInfoComponentProps> = ({ showIdentificat
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.5 }}
-      className="bg-gradient-to-br from-[#0a0520] to-[#1a0f2e] p-6 rounded-2xl shadow-xl backdrop-blur-lg transform transition-all duration-300 overflow-hidden hover:shadow-[#52B788]/30 hover:scale-102"
+      className="bg-gradient-to-br from-[#0a0520] to-[#1a0f2e] p-6 rounded-2xl shadow-xl backdrop-blur-lg transform transition-all duration-300 overflow-hidden hover:shadow-[#52B788]/30 hover:scale-105"
     >
       <h3 className="text-3xl font-bold text-[#52B788] mb-6 border-b border-[#52B788] pb-3 flex items-center">
         <Leaf className="mr-2" size={28} />
@@ -61,7 +73,7 @@ const PlantInfoComponent: React.FC<PlantInfoComponentProps> = ({ showIdentificat
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.5 }}
-      className="bg-gradient-to-br from-[#0a0520] to-[#1a0f2e] p-6 rounded-2xl shadow-xl backdrop-blur-lg transform transition-all duration-300 overflow-hidden hover:shadow-[#52B788]/30 hover:scale-102"
+      className="bg-gradient-to-br from-[#0a0520] to-[#1a0f2e] p-6 rounded-2xl shadow-xl backdrop-blur-lg transform transition-all duration-300 overflow-hidden hover:shadow-[#52B788]/30 hover:scale-105"
     >
       <h3 className="text-3xl font-bold text-[#52B788] mb-6 border-b border-[#52B788] pb-3 flex items-center">
         <Activity className="mr-2" size={28} />
@@ -173,6 +185,16 @@ const PlantInfoComponent: React.FC<PlantInfoComponentProps> = ({ showIdentificat
       >
         {activeSection === 'plantInfo' ? <ChevronRight size={24} /> : <ChevronLeft size={24} />}
       </motion.button>
+      {responseMessage && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="mt-4 p-3 bg-blue-500/20 text-white rounded-lg"
+        >
+          {responseMessage}
+        </motion.div>
+      )}
     </div>
   );
 };

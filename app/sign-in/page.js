@@ -1,31 +1,63 @@
-// "use client";
-// import { SignIn } from "@clerk/nextjs";
-// import { useRouter } from "next/navigation";
-// import { useEffect } from "react";
+'use client';
 
-// export default function SignInPage() {
-//   const router = useRouter();
+import { SignIn } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useAuth } from "@clerk/nextjs";
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-//   const handleOnSignIn = async () => {
-//     // Custom logic on sign-in (e.g., logging, fetching user data, etc.)
-//     console.log("User signed in successfully");
-//     // Redirect to /plant-identifier after a small delay, for example
-//     setTimeout(() => {
-//       router.push("/plant-identifier");
-//     }, 500); // Optional delay before redirect
-//   };
+export default function CustomSignInPage() {
+  const router = useRouter();
+  const { isLoaded, userId } = useAuth();
+  const [error, setError] = useState("");
 
-//   return (
-//     <SignIn
-//       afterSignInUrl="/plant-identifier"
-//       afterSignUpUrl="/plant-identifier"
-//       routing="path"
-//       path="/sign-in"
-//       onSignIn={handleOnSignIn}  // Custom sign-in handler
-//     />
-//   );
-// }
+  useEffect(() => {
+    if (isLoaded && userId) {
+      handleRedirect();
+    }
+  }, [isLoaded, userId]);
 
+  const handleRedirect = async () => {
+    try {
+      router.push("/plan-placing");
+    } catch (error) {
+      console.error("Redirection error:", error);
+      setError("An error occurred during redirection. Please try again.");
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <link>
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+              <button>Continue</button>
+            </h2>
+          </link>
+        </div>
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        <SignIn 
+          appearance={{
+            elements: {
+              formButtonPrimary: 
+                "bg-green-600 hover:bg-green-700 text-sm normal-case",
+            },
+          }}
+          path="/sign-in"
+          routing="path"
+          signUpUrl="/sign-up"
+          redirectUrl="/plan-placing"
+          afterSignInUrl="/plan-placing"
+        />
+      </div>
+    </div>
+  );
+}
 
 // 'use client';
 

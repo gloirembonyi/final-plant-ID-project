@@ -16,6 +16,18 @@ const nextConfig = {
       },
     ],
   },
-}
+  async rewrites() {
+    return [
+      {
+        source: '/sign-in/:path*',
+        destination: '/sign-in',
+      },
+      {
+        source: '/sign-up/:path*',
+        destination: '/sign-up',
+      },
+    ];
+  },
+};
 
 export default nextConfig;
