@@ -29,7 +29,7 @@ export default function Help() {
             </div>
             <div className="mt-12">
               <h2 className="text-2xl font-thin mb-6">Still Need Help?</h2>
-              <p className="mb-4">If you couldn't find the answer to your question, please don't hesitate to contact our support team:</p>
+              <p className="mb-4">If you couldn&apos;t find the answer to your question, please don&apos;t hesitate to contact our support team:</p>
               <ul className="list-disc list-inside font-thin">
                 <li>Email: support@plantidentifier.com</li>
                 <li>Phone: (123) 456-7890</li>

@@ -1,3 +1,5 @@
+//app/plan-placing/payment-confimation.tsx
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { loadStripe } from '@stripe/stripe-js';
@@ -54,7 +56,7 @@ export default function PaymentConfirmation() {
         )}
         {status === 'processing' && (
           <div className="text-yellow-600">
-            <p>Your payment is being processed. We'll update you when it's complete.</p>
+            <p>Your payment is being processed. We&apos;ll update you when it&apos;s complete.</p>
           </div>
         )}
         {status === 'error' && (

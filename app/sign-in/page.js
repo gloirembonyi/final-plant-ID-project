@@ -2,7 +2,7 @@
 
 import { SignIn } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -11,37 +11,36 @@ export default function CustomSignInPage() {
   const { isLoaded, userId } = useAuth();
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (isLoaded && userId) {
-      handleRedirect();
-    }
-  }, [isLoaded, userId]);
-
-  const handleRedirect = async () => {
+  // Memoize handleRedirect to prevent infinite loops
+  const handleRedirect = useCallback(async () => {
     try {
       router.push("/plan-placing");
     } catch (error) {
       console.error("Redirection error:", error);
       setError("An error occurred during redirection. Please try again.");
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    if (isLoaded && userId) {
+      handleRedirect();
+    }
+  }, [isLoaded, userId, handleRedirect]); // Add handleRedirect to dependencies
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <link>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-              <button>Continue</button>
-            </h2>
-          </link>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Continue
+          </h2>
         </div>
         {error && (
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        <SignIn 
+        <SignIn
           appearance={{
             elements: {
               formButtonPrimary: 
@@ -58,6 +57,7 @@ export default function CustomSignInPage() {
     </div>
   );
 }
+
 
 // 'use client';
 

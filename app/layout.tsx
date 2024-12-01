@@ -45,7 +45,6 @@ export default function RootLayout({
             </svg>
           </div>
           {children}
-
         </body>
       </html>
     </ClerkProvider>

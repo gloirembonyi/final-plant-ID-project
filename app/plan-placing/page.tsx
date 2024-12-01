@@ -1,3 +1,5 @@
+//app/plan-placing/page.tsx
+
 "use client"; // Ensures this is a client component
 
 import React, { useState } from 'react';
@@ -42,30 +44,56 @@ const plans: Plan[] = [
     interval: 'year',
     features: ['All Pro features', 'Dedicated account manager', 'Custom integrations'],
     buttonText: 'Contact Sales',
-    buttonLink: '/contact-sales'
+     buttonLink: '/contact-sales'
   }
 ];
 
+const LoadingAnimation = () => (
+  <div className="flex justify-center items-center">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+  </div>
+);
+
 export default function Checkout() {
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handlePlanSelect = (plan: Plan) => {
+    setLoading(true);
+    setSelectedPlan(null);
+    
+    // Simulate a delay to show the loading animation
+    setTimeout(() => {
+      setSelectedPlan(plan);
+      setLoading(false);
+    }, 1500); // Adjust this delay as needed
+  };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="bg-gradient-to-br from-[#101329] to-[#222c3c] min-h-screen py-16 px-4 sm:px-6 lg:px-8">
       <Head>
         <title>Choose Your Plan - Plant Identifier</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className="container  mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-center mb-8">Choose Your Plan</h1>
-        <PlanSelector plans={plans} selectedPlan={selectedPlan} onSelectPlan={setSelectedPlan} />
-        {selectedPlan && (
+      <main>
+        <PlanSelector 
+          plans={plans} 
+          selectedPlan={selectedPlan} 
+          onSelectPlan={handlePlanSelect} 
+        />
+        {loading && (
           <div className="mt-12">
-            <h2 className="text-2xl font-semibold mb-4">Checkout</h2>
+            <LoadingAnimation />
+          </div>
+        )}
+        {!loading && selectedPlan && (
+          <div className="mt-12 bg-white bg-opacity-10 backdrop-filter backdrop-blur-lg rounded-xl shadow-xl p-8 max-w-2xl mx-auto">
+            <h2 className="text-2xl font-semibold mb-4 text-white">Checkout</h2>
             {selectedPlan.price > 0 ? (
               <StripePaymentForm plan={selectedPlan} />
             ) : (
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <p className="text-lg mb-4">You've selected the {selectedPlan.name} plan. No payment is required.</p>
+              <div>
+                <p className="text-lg mb-4 text-gray-300">You&apos;ve selected the {selectedPlan.name} plan. No payment is required.</p>
                 <Link
                   href={selectedPlan.buttonLink}
                   className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200"

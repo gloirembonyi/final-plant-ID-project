@@ -83,7 +83,7 @@ const PlantIdentifierStyles = () => (
 );
 
 // Types
-type Sender = 'user' | 'ai';
+type Sender = "user" | "ai";
 
 interface Message {
   sender: Sender;
@@ -238,7 +238,10 @@ interface TypewriterEffectProps {
   onComplete: () => void;
 }
 
-const TypewriterEffect: React.FC<TypewriterEffectProps> = ({ text, onComplete }) => {
+const TypewriterEffect: React.FC<TypewriterEffectProps> = ({
+  text,
+  onComplete,
+}) => {
   const [displayText, setDisplayText] = useState<string>("");
   const [currentIndex, setCurrentIndex] = useState<number>(0);
 
@@ -261,8 +264,6 @@ const TypewriterEffect: React.FC<TypewriterEffectProps> = ({ text, onComplete })
     </span>
   );
 };
-
-
 
 export default function PlantIdentifier() {
   const [image, setImage] = useState<string | null>(null);
@@ -300,12 +301,88 @@ export default function PlantIdentifier() {
   >([]);
   const [animatingMessage, setAnimatingMessage] = useState<string | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const [isRecording, setIsRecording] = useState<boolean>(false);  // If it's a boolean value
+  const [isRecording, setIsRecording] = useState<boolean>(false); // If it's a boolean value
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
-
   // Type definitions
+
+  const delay = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+
+  const exponentialBackoff = async (
+    input: string,
+    imageData: string,
+    context: ChatContextType,
+    retries: number = 5,
+    delayTime: number = 1000
+  ): Promise<string> => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        // Attempt the AI call here
+        return await processAIResponse(input, imageData, context);
+      } catch (error) {
+        if (i === retries - 1) throw error; // Final attempt
+        await delay(delayTime * Math.pow(2, i)); // Increase the delay exponentially
+      }
+    }
+    throw new Error("Failed after multiple retries"); // Ensure a string is always returned or an error is thrown
+  };
+
+  const processAIResponse = async (
+    input: string,
+    imageData: string,
+    context: ChatContextType
+  ): Promise<string> => {
+    const genAI = new GoogleGenerativeAI(
+      process.env.GOOGLE_AI_API_KEY || "AIzaSyAfKjAARrlaeGZcQrF-mDi9EenmhGZliUY"
+    );
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+    const contextString = JSON.stringify(context);
+
+    try {
+      // Adding a delay to throttle the requests and reduce the chances of exceeding the quota
+      await delay(1000); // 1-second delay
+
+      const result = await model.generateContent({
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                text: `Using the image I've uploaded and the context provided: ${contextString}, please focus on giving a clear and accurate answer to this question: ${input}. 
+                Consider our previous messages to ensure your response is coherent and fits naturally within the conversation. 
+                Keep the tone friendly and engaging—feel free to use emojis, but prioritize delivering the most relevant and helpful answer! 😊`,
+              },
+              {
+                inlineData: {
+                  mimeType: "image/jpeg",
+                  data: imageData.split(",")[1],
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      return result.response.text();
+    } catch (error) {
+      console.error("Error generating content:", error);
+
+      // Check if the error is related to exceeding quota and apply exponential backoff retry
+      if (
+        (error as Error).message.includes("quota exceeded") ||
+        (error as Error).message.includes("429")
+      ) {
+        console.error(
+          "Quota exceeded, applying exponential backoff and retry..."
+        );
+        return await exponentialBackoff(input, imageData, context); // Pass the arguments properly
+      }
+
+      throw new Error("AI content generation failed.");
+    }
+  };
 
   const handleChatSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -322,11 +399,20 @@ export default function PlantIdentifier() {
         previousMessages: chatMessages,
       };
 
+      // Call the processAIResponse function to get the AI's response
       const aiResponse = await processAIResponse(chatInput, image, chatContext);
+      const newMessage: Message = {
+        sender: "ai",
+        text: aiResponse,
+      };
+      setChatMessages((prev) => [...prev, newMessage]);
+
       const processedResponse = aiResponse.replace(/(\*\*|\#\#)/g, "");
       setAnimatingMessage(processedResponse);
     } catch (error) {
       console.error("Error processing AI response:", error);
+
+      // Error fallback message for the chat
       const errorMessage: Message = {
         sender: "ai",
         text: "Oops! 😅 I encountered an error. Let's try that again, shall we?",
@@ -335,43 +421,6 @@ export default function PlantIdentifier() {
     } finally {
       setLoading(false);
     }
-  };
-
- 
-
-  const processAIResponse = async (
-    input: string,
-    imageData: string,
-    context: ChatContextType
-  ): Promise<string> => {
-    const genAI = new GoogleGenerativeAI(
-      process.env.GOOGLE_AI_API_KEY || "AIzaSyDgtX4r0SbnGD1bluGrkDBN45OKG8UFSW4"
-    );
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-    const contextString = JSON.stringify(context);
-
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              text: `Using the image I've uploaded and the context provided: ${contextString}, please focus on giving a clear and accurate answer to this question: ${input}. 
-              Consider our previous messages to ensure your response is coherent and fits naturally within the conversation. 
-              Keep the tone friendly and engaging—feel free to use emojis, but prioritize delivering the most relevant and helpful answer! 😊`,
-            },
-            {
-              inlineData: {
-                mimeType: "image/jpeg",
-                data: imageData.split(",")[1],
-              },
-            },
-          ],
-        },
-      ],
-    });
-
-    return result.response.text();
   };
 
   const toggleChatExpansion = useCallback(() => {
@@ -384,7 +433,9 @@ export default function PlantIdentifier() {
   const toggleVoiceRecording = useCallback(async () => {
     if (!isRecording) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
         mediaRecorderRef.current = new MediaRecorder(stream);
         audioChunksRef.current = [];
 
@@ -393,16 +444,21 @@ export default function PlantIdentifier() {
         };
 
         mediaRecorderRef.current.onstop = () => {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+          const audioBlob = new Blob(audioChunksRef.current, {
+            type: "audio/wav",
+          });
           const audioUrl = URL.createObjectURL(audioBlob);
-          
+
           // Here you would typically send this audio file to a speech-to-text service
           // For now, we'll just add a placeholder message
-          const userMessage: Message = { sender: "user", text: "🎤 Audio message" };
+          const userMessage: Message = {
+            sender: "user",
+            text: "🎤 Audio message",
+          };
           setChatMessages((prev) => [...prev, userMessage]);
-          
+
           // Clean up
-          stream.getTracks().forEach(track => track.stop());
+          stream.getTracks().forEach((track) => track.stop());
         };
 
         mediaRecorderRef.current.start();
@@ -415,7 +471,6 @@ export default function PlantIdentifier() {
       setIsRecording(false);
     }
   }, [isRecording]);
-
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -437,10 +492,10 @@ export default function PlantIdentifier() {
     }
   }, []);
 
-
   useEffect(() => {
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
     }
   }, [chatMessages, animatingMessage]);
 
@@ -556,7 +611,7 @@ export default function PlantIdentifier() {
     setLoading(true);
     try {
       const genAI = new GoogleGenerativeAI(
-        "AIzaSyCr9LRa1zi5rwwTlibFmRu2r0rbug8S-Ow"
+        "AIzaSyAfKjAARrlaeGZcQrF-mDi9EenmhGZliUY"
       ); // Replace with your actual API key
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
@@ -987,7 +1042,6 @@ export default function PlantIdentifier() {
     <div className="min-h-screen flex flex-col -mt-24 pt-24 bg-gradient-to-br from-[#050414] via-[#1a0f2e] to-[#2a1b3d] text-white font-['Roboto']">
       {/* ... (existing styles and other elements) */}
       <PlantIdentifierStyles />
-
       <main className="flex-grow max-w-7xl w-full mx-auto px-8 py-8 flex flex-col lg:flex-row gap-2 animate-fadeIn">
         <div className="flex-grow lg:mr-0 space-y-8">
           <div className="bg-[#130a2a]/80 rounded-2xl shadow-lg p-6 backdrop-blur-sm border border-[#ff00ff]/20">
@@ -995,109 +1049,115 @@ export default function PlantIdentifier() {
               <CoolImageDisplay images={similarImages} />
             )}
             <div className="bg-[#130a2a]/80 rounded-2xl shadow-lg p-1 backdrop-blur-sm">
-            <style>{styles}</style>
-            <AnimatePresence>
-  {isChatExpanded && (
-    <motion.div
-      key="chat-box"
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.5, ease: "easeInOut" }}
-      className="transition-all sticky top-20 z-10 duration-500 ease-in-out mt-8"
-    >
-      <div className="bg-gradient-to-br from-[#101329] to-[#222c3c] rounded-lg top-20 shrink-0 z-10 shadow-lg p-6 backdrop-blur-sm mb-8 border border-[#3F51B5] hover:shadow-xl transform transition-all duration-500">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-2xl font-light text-[#66b5f6] flex items-center">
-            <FaComments className="mr-2 text-[#66b5f6]" /> AI Chat
-          </h3>
-          <button
-            onClick={toggleChatExpansion}
-            className="bg-gradient-to-br from-[#0a0c1b] to-[#24334c] text-[#66b5f6] px-3 py-1 rounded hover:bg-[#80bdef] transition font-light text-sm flex items-center"
-          >
-            <FaCompress className="mr-1" /> Minimize
-          </button>
-        </div>
+              <style>{styles}</style>
+              <AnimatePresence>
+                {isChatExpanded && (
+                  <motion.div
+                    key="chat-box"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.5, ease: "easeInOut" }}
+                    className="transition-all sticky top-20 z-10 duration-500 ease-in-out mt-8"
+                  >
+                    <div className="bg-gradient-to-br from-[#101329] to-[#222c3c] rounded-lg top-20 shrink-0 z-10 shadow-lg p-6 backdrop-blur-sm mb-8 border border-[#3F51B5] hover:shadow-xl transform transition-all duration-500">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-2xl font-light text-[#66b5f6] flex items-center">
+                          <FaComments className="mr-2 text-[#66b5f6]" /> AI Chat
+                        </h3>
+                        <button
+                          onClick={toggleChatExpansion}
+                          className="bg-gradient-to-br from-[#0a0c1b] to-[#24334c] text-[#66b5f6] px-3 py-1 rounded hover:bg-[#80bdef] transition font-light text-sm flex items-center"
+                        >
+                          <FaCompress className="mr-1" /> Minimize
+                        </button>
+                      </div>
 
-        <div ref={chatContainerRef} className="chat-container custom-scrollbar">
-          <div className="message-container">
-            <AnimatePresence>
-              {chatMessages.map((msg, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className={`message ${
-                    msg.sender === "user" ? "user-message" : "ai-message"
-                  }`}
-                >
-                  {msg.text}
-                  {msg.sender === "ai" && (
-                    <button
-                      onClick={() => navigator.clipboard.writeText(msg.text)}
-                      className="absolute top-0 right-0 mt-1 mr-1 bg-[#1f9ba4] text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Copy to clipboard"
-                    >
-                      <FaCopy size={12} />
-                    </button>
-                  )}
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
+                      <div
+                        ref={chatContainerRef}
+                        className="chat-container custom-scrollbar"
+                      >
+                        <div className="message-container">
+                          <AnimatePresence>
+                            {chatMessages.map((msg, index) => (
+                              <motion.div
+                                key={index}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ duration: 0.3 }}
+                                className={`message ${
+                                  msg.sender === "user"
+                                    ? "user-message"
+                                    : "ai-message"
+                                }`}
+                              >
+                                {msg.text}
+                                {msg.sender === "ai" && (
+                                  <button
+                                    onClick={() =>
+                                      navigator.clipboard.writeText(msg.text)
+                                    }
+                                    className="absolute top-0 right-0 mt-1 mr-1 bg-[#1f9ba4] text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="Copy to clipboard"
+                                  >
+                                    <FaCopy size={12} />
+                                  </button>
+                                )}
+                              </motion.div>
+                            ))}
+                          </AnimatePresence>
+                        </div>
 
-          {animatingMessage && (
-            <div className="typewriter-container">
-              <TypewriterEffect
-                text={animatingMessage}
-                onComplete={handleTypewriterComplete}
-              />
-            </div>
-          )}
+                        {animatingMessage && (
+                          <div className="typewriter-container">
+                            <TypewriterEffect
+                              text={animatingMessage}
+                              onComplete={handleTypewriterComplete}
+                            />
+                          </div>
+                        )}
 
-          {isRecording && (
-            <div className="voice-recording-indicator">
-              <div className="pulse"></div>
-              Recording...
-            </div>
-          )}
-        </div>
-        <div className="input-container">
-        <form
-          onSubmit={handleChatSubmit}
-          className="flex sticky bottom-10 m-2"
-        >
-          <input
-            type="text"
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            placeholder="Ask about the image..."
-            className="flex-grow bg-gradient-to-br from-[#0a0c1b] to-[#24334c] text-[#c8c8c8] rounded-l-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-[#1fbac0]"
-          />
-          <button
-            type="button"
-            onClick={toggleVoiceRecording}
-            className={`bg-gradient-to-br from-[#0a0c1b] to-[#24334c] text-white px-4 py-2 ${
-              isRecording ? "bg-red-500" : ""
-            } transition mr-2`}
-          >
-            {isRecording ? <FaStop /> : <FaMicrophone />}
-          </button>
-          <button
-            type="submit"
-            className="bg-gradient-to-br from-[#0a0c1b] to-[#24334c] text-white px-4 py-2 rounded-r-full hover:bg-[#1d5e63] transition"
-          >
-            <FaPaperPlane />
-          </button>
-        </form>
-        </div>
-      </div>
-    </motion.div>
-  )}
-</AnimatePresence>
-
+                        {isRecording && (
+                          <div className="voice-recording-indicator">
+                            <div className="pulse"></div>
+                            Recording...
+                          </div>
+                        )}
+                      </div>
+                      <div className="input-container">
+                        <form
+                          onSubmit={handleChatSubmit}
+                          className="flex sticky bottom-10 m-2"
+                        >
+                          <input
+                            type="text"
+                            value={chatInput}
+                            onChange={(e) => setChatInput(e.target.value)}
+                            placeholder="Ask about the image..."
+                            className="flex-grow bg-gradient-to-br from-[#0a0c1b] to-[#24334c] text-[#c8c8c8] rounded-l-full py-2 px-4 focus:outline-none focus:ring-1 focus:ring-[#1fbac0]"
+                          />
+                          <button
+                            type="button"
+                            onClick={toggleVoiceRecording}
+                            className={`bg-gradient-to-br from-[#0a0c1b] to-[#24334c] text-white px-4 py-2 ${
+                              isRecording ? "bg-red-500" : ""
+                            } transition mr-2`}
+                          >
+                            {isRecording ? <FaStop /> : <FaMicrophone />}
+                          </button>
+                          <button
+                            type="submit"
+                            className="bg-gradient-to-br from-[#0a0c1b] text-white px-4 py-2 rounded-r-full hover:bg-[#1b233e] transition"
+                          >
+                            <FaPaperPlane />
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Header Section */}
               <div className="flex justify-between items-center mb-8  border-[#52B788] pb-4">
@@ -1233,14 +1293,17 @@ export default function PlantIdentifier() {
             <div className="relative h-64 mb-8 rounded-2xl overflow-hidden">
               <Image
                 src="/tropical-sunset.jpg"
-                alt="Tropical Sunset"
                 fill
+                sizes="(max-width: 768px) 100vw, 
+                        (max-width: 1200px) 50vw, 
+                        33vw"
+                alt="Tropical sunset"
                 style={{ objectFit: "cover" }}
                 className="transition-transform duration-300 hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#050414] to-transparent"></div>
               <h2 className="absolute bottom-6 left-6 text-4xl text-white font-thin z-10 neon-text">
-                Discover Nature's Secrets
+                Discover Nature&apos;s Secrets
               </h2>
             </div>
 
@@ -1269,7 +1332,7 @@ export default function PlantIdentifier() {
                   its name and care instructions
                 </li>
                 <li>
-                  The AI also assesses the plant's health and offers suggestions
+                  The AI also assesses the plant&apos;s health and offers suggestions
                   for improvement if needed
                 </li>
               </ol>

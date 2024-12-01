@@ -1,8 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import image from 'next/image';
-
-// ... (other imports and component setup)
+import Image from 'next/image';
 
 const PlantIdentifier = () => {
   const [responseMessage, setResponseMessage] = useState<string>('');
@@ -12,48 +10,67 @@ const PlantIdentifier = () => {
   const [showIdentificationResults, setShowIdentificationResults] = useState<boolean>(false);
   const [animate, setAnimate] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
-  
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+    }
+  };
 
   const identifyPlant = async () => {
-    if (!image) return;
+    if (!selectedImage) {
+      setResponseMessage('Please upload an image first');
+      return;
+    }
+
     setLoading(true);
     try {
-      const genAI = new GoogleGenerativeAI("AIzaSyCr9LRa1zi5rwwTlibFmRu2r0rbug8S-Ow"); // Replace with your actual API key
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      // Convert image to base64
+      const reader = new FileReader();
+      reader.readAsDataURL(selectedImage);
+      reader.onloadend = async () => {
+        const base64Image = reader.result as string;
+        const base64Data = base64Image.split(',')[1]; // Remove the data URL prefix
 
-      const result = await model.generateContent({
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { text: `Identify this plant and provide a comprehensive analysis. ...` }, // Your existing prompt
-              { inlineData: { mimeType: "image/jpeg", data: image.src.split(",")[1]} },
-            ],
-          },
-        ],
-      });
+        const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-      const processedText = result.response.text().replace(/(\*\*|\#\#)/g, "");
-      const [plantInfo, healthAssessment] = processedText.split("Health Assessment:");
+        const result = await model.generateContent({
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: `Identify this plant and provide a comprehensive analysis.` },
+                { inlineData: { mimeType: selectedImage.type, data: base64Data } },
+              ],
+            },
+          ],
+        });
 
-      setResult({
-        plantInfo: plantInfo.trim(),
-        healthAssessment: "Health Assessment:\n" + healthAssessment.trim(),
-      });
-      setTranslatedResult({
-        plantInfo: plantInfo.trim(),
-        healthAssessment: "Health Assessment:\n" + healthAssessment.trim(),
-      });
+        const processedText = result.response.text().replace(/(\*\*|\#\#)/g, "");
+        const [plantInfo, healthAssessment] = processedText.split("Health Assessment:");
 
-      await processPlantData(plantInfo, healthAssessment);
+        setResult({
+          plantInfo: plantInfo.trim(),
+          healthAssessment: "Health Assessment:\n" + healthAssessment.trim(),
+        });
+        setTranslatedResult({
+          plantInfo: plantInfo.trim(),
+          healthAssessment: "Health Assessment:\n" + healthAssessment.trim(),
+        });
 
+        await processPlantData(plantInfo, healthAssessment);
+        setLoading(false);
+      };
     } catch (error) {
       console.error('Error in identifyPlant:', error);
       const errorMessage = `Error identifying plant: ${error instanceof Error ? error.message : String(error)}`;
       setResult({ plantInfo: errorMessage, healthAssessment: "" });
       setTranslatedResult({ plantInfo: errorMessage, healthAssessment: "" });
       setResponseMessage(errorMessage);
-    } finally {
       setLoading(false);
     }
   };
@@ -214,8 +231,8 @@ const PlantIdentifier = () => {
   // ... (rest of your component code)
    // Function to fetch similar images
    const fetchSimilarImages = async (plantName: string | number | boolean) => {
-    const API_KEY = "AIzaSyDKjUJexCy7hF2JPxwY5KtnhnfB92Su2e4";
-    const CX = "822179631a8e44f03";
+    const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
+    const CX = process.env.NEXT_PUBLIC_CX;
 
     try {
       const response = await fetch(
