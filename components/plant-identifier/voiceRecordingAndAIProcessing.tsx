@@ -49,7 +49,7 @@
 //     context: ChatContextType
 //   ): Promise<string> => {
 //     const genAI = new GoogleGenerativeAI(
-//       process.env.GOOGLE_AI_API_KEY || "AIzaSyDgtX4r0SbnGD1bluGrkDBN45OKG8UFSW4"
+//       process.env.GOOGLE_AI_API_KEY || ""
 //     );
 //     const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 //     const contextString = JSON.stringify(context);

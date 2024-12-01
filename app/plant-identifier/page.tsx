@@ -17,70 +17,12 @@ import {
 } from "react-icons/fa";
 import { FaArrowRight, FaCamera, FaUpload } from "react-icons/fa";
 require("dotenv").config();
-import PlantInfoComponent from "./PlantInfoComponent";
-import CoolImageDisplay from "./CoolImageDisplay";
+import PlantInfoComponent from "../../components/plant-identifier/PlantInfoComponent";
+import CoolImageDisplay from "../../components/plant-identifier/CoolImageDisplay";
 import { AnimatePresence, motion } from "framer-motion";
+import PlantIdentifierStyles from "@/components/PlantIdentifierStyles";
 
-const PlantIdentifierStyles = () => (
-  <style jsx global>{`
-    /* Existing animations */
 
-    @keyframes neonPulse {
-      0%,
-      100% {
-        text-shadow: 0 0 5px #ff00ff, 0 0 10px #ff00ff, 0 0 15px #ff00ff;
-      }
-      50% {
-        text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff;
-      }
-    }
-
-    .neon-text {
-      animation: neonPulse 2s infinite;
-    }
-
-    .neon-button {
-      box-shadow: 0 0 5px #ff00ff, 0 0 10px #ff00ff;
-      transition: all 0.3s ease;
-    }
-
-    .neon-button:hover {
-      box-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff;
-    }
-
-    /* Add a subtle parallax effect */
-    .parallax {
-      background-attachment: fixed;
-      background-position: center;
-      background-repeat: no-repeat;
-      background-size: cover;
-    }
-
-    /* Custom scrollbar styles for Firefox */
-    .custom-scrollbar {
-      scrollbar-width: thin;
-      scrollbar-color: rgba(82, 183, 136, 0.5) rgba(255, 255, 255, 0.1);
-    }
-
-    /* Optional: Styles for other browsers (won't affect Firefox) */
-    .custom-scrollbar::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.1);
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-      background-color: rgba(82, 183, 136, 0.5);
-      border-radius: 10px;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background-color: rgba(82, 183, 136, 0.7);
-    }
-  `}</style>
-);
 
 // Types
 type Sender = "user" | "ai";
@@ -99,138 +41,7 @@ interface IdentificationResult {
   plantInfo?: string;
 }
 
-// Styles
-const styles = `
-@import url(https://fonts.googleapis.com/css?family=Anonymous+Pro);
 
-.chat-container {
-  position: relative;
-  height: 80vh;
-  overflow-y: auto;
-  scroll-behavior: smooth;
-}
-
-.message-container {
-  padding-bottom: 60px;
-}
-
-.typewriter-container {
-  position: sticky;
-  bottom: 0;
-  background-color: rgba(10, 22, 37, 0.8);
-  padding: 10px;
-  backdrop-filter: blur(5px);
-}
-
-.message {
-  max-width: 80%;
-  margin-bottom: 1rem;
-  padding: 0.75rem 1rem;
-  border-radius: 1rem;
-  position: relative;
-  transition: all 0.3s ease;
-}
-
-.message:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-.user-message {
-    background-color: rgba(33, 150, 243, 0.1);
-    color: #E3F2FD;
-    margin-left: auto;
-    border-bottom-right-radius: 0;
-  }
-
- .ai-message {
-    background-color: #0a3033;
-    color: #E8F5E9;
-    margin-right: auto;
-    border-bottom-left-radius: 0;
-  }
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #2196F3;
-  border-radius: 20px;
-  border: 3px solid #1A237E;
-}
-
-.input-container {
-  position: sticky;
-  bottom: 0;
-  background-color: #0A1929;
-  padding: 10px;
-  border-top: 1px solid #1fbac0;
-}
-
-
-.typing-indicator::after {
-  content: '▋';
-  animation: blink 1s infinite;
-}
-
-@keyframes ellipsis {
-    0% { content: '.'; }
-    33% { content: '..'; }
-    66% { content: '...'; }
-  }
-
-.voice-recording-indicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
-  background-color: rgba(255, 0, 0, 0.1);
-  border-radius: 20px;
-  margin-bottom: 10px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  order-radius: 50%;
-  color: white;
-  background-color: #4CAF50;
-  border: none;
-}
-
-.pulse {
-  width: 10px;
-  height: 10px;
-  background-color: red;
-  border-radius: 50%;
-  margin-right: 10px;
-  animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
-  }
-  
-  70% {
-    transform: scale(1);
-    box-shadow: 0 0 0 10px rgba(255, 0, 0, 0);
-  }
-  
-  100% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
-  }
-}
-`;
 
 // Define props type for TypewriterEffect
 interface TypewriterEffectProps {
@@ -322,8 +133,8 @@ export default function PlantIdentifier() {
         // Attempt the AI call here
         return await processAIResponse(input, imageData, context);
       } catch (error) {
-        if (i === retries - 1) throw error; // Final attempt
-        await delay(delayTime * Math.pow(2, i)); // Increase the delay exponentially
+        if (i === retries - 1) throw error; 
+        await delay(delayTime * Math.pow(2, i)); 
       }
     }
     throw new Error("Failed after multiple retries"); // Ensure a string is always returned or an error is thrown
@@ -335,7 +146,7 @@ export default function PlantIdentifier() {
     context: ChatContextType
   ): Promise<string> => {
     const genAI = new GoogleGenerativeAI(
-      process.env.GOOGLE_AI_API_KEY || "AIzaSyAfKjAARrlaeGZcQrF-mDi9EenmhGZliUY"
+      process.env.GOOGLE_AI_API_KEY || ""
     );
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
     const contextString = JSON.stringify(context);
@@ -612,7 +423,7 @@ export default function PlantIdentifier() {
     try {
       const genAI = new GoogleGenerativeAI(
         "AIzaSyAfKjAARrlaeGZcQrF-mDi9EenmhGZliUY"
-      ); // Replace with your actual API key
+      ); 
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       const result = await model.generateContent({
@@ -1049,7 +860,6 @@ export default function PlantIdentifier() {
               <CoolImageDisplay images={similarImages} />
             )}
             <div className="bg-[#130a2a]/80 rounded-2xl shadow-lg p-1 backdrop-blur-sm">
-              <style>{styles}</style>
               <AnimatePresence>
                 {isChatExpanded && (
                   <motion.div
@@ -1161,7 +971,7 @@ export default function PlantIdentifier() {
 
               {/* Header Section */}
               <div className="flex justify-between items-center mb-8  border-[#52B788] pb-4">
-                <style>{styles}</style>
+
                 <h2 className="text-5xl text-[#52B788] font-thin">
                   Plant Identifier
                 </h2>

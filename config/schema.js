@@ -36,7 +36,7 @@ let db;
 function getDB() {
   if (!db) {
     const pool = new Pool({
-      connectionString: process.env.DB_URL || 'postgresql://all_plant_diseases_owner:IObzSy9mlxX0@ep-soft-base-a58at763.us-east-2.aws.neon.tech/all_plant_diseases?sslmode=require',
+      connectionString: process.env.DB_URL || 'postgresql://all_plant_diseases_owner:IObzSy9mlxX0@ep-soft-base-a58at763.us-east-2.aws.neon.tech/all_plant_diseases?sslmode=require'
     });
     db = drizzle(pool);
   }

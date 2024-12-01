@@ -11,7 +11,7 @@ const nextConfig = {
         hostname: '**', // This will allow images from any hostname using HTTPS
       },
       {
-        protocol: 'https',
+        protocol: 'http',
         hostname: '**', // This will allow images from any hostname using HTTP
       },
     ],
