@@ -74,7 +74,7 @@ export default function UniversalIdentifier() {
     if (!chatInput.trim() || !image) return;
   
     const processAIResponse = async (input: string, imageData: string): Promise<string> => {
-      const genAI = new GoogleGenerativeAI('AIzaSyCr9LRa1zi5rwwTlibFmRu2r0rbug8S-Ow');
+      const genAI = new GoogleGenerativeAI('AIzaSyAfKjAARrlaeGZcQrF-mDi9EenmhGZliUY');
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
       
       const result = await model.generateContent({
@@ -229,7 +229,7 @@ export default function UniversalIdentifier() {
     }
     setLoading(true);
     try {
-      const genAI = new GoogleGenerativeAI('AIzaSyCr9LRa1zi5rwwTlibFmRu2r0rbug8S-Ow');
+      const genAI = new GoogleGenerativeAI('AIzaSyAfKjAARrlaeGZcQrF-mDi9EenmhGZliUY');
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
       
       const result = await model.generateContent({

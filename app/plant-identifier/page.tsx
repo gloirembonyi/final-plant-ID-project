@@ -146,7 +146,7 @@ export default function PlantIdentifier() {
     context: ChatContextType
   ): Promise<string> => {
     const genAI = new GoogleGenerativeAI(
-      process.env.GOOGLE_AI_API_KEY || ""
+      process.env.GOOGLE_AI_API_KEY || "AIzaSyDgtX4r0SbnGD1bluGrkDBN45OKG8UFSW4"
     );
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
     const contextString = JSON.stringify(context);

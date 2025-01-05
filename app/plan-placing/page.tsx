@@ -1,7 +1,6 @@
 //app/plan-placing/page.tsx
 
-"use client"; // Ensures this is a client component
-
+"use client";
 import React, { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -66,7 +65,7 @@ export default function Checkout() {
     setTimeout(() => {
       setSelectedPlan(plan);
       setLoading(false);
-    }, 1500); // Adjust this delay as needed
+    }, 1500); 
   };
 
   return (
